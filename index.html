@@ -1,0 +1,580 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FrenziCalendor</title>
+    
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <link rel="manifest" href="data:application/manifest+json;charset=utf-8,{
+        %22name%22: %22FrenziCalendor%22,
+        %22short_name%22: %22FrenziCalendor%22,
+        %22start_url%22: %22.%22,
+        %22display%22: %22standalone%22,
+        %22background_color%22: %22%230b0f19%22,
+        %22theme_color%22: %22%230b0f19%22,
+        %22icons%22: [
+            {
+                %22src%22: %22data:image/svg+xml;utf8,<svg xmlns=%27http://www.w3.org/2000/svg%27 width=%27512%27 height=%27512%27 viewBox=%270 0 512 512%27><rect width=%27512%27 height=%27512%27 rx=%27128%27 fill=%27%23000000%27/><path d=%27M160 180h192M160 256h192M160 332h120%27 stroke=%27%2360a5fa%27 stroke-width=%2732%27 stroke-linecap=%27round%27/><circle cx=%27256%27 cy=%27100%27 r=%2732%27 fill=%27%2360a5fa%27/></svg>%22,
+                %22sizes%22: %22192x192 512x512%22,
+                %22type%22: %22image/svg+xml%22,
+                %22purpose%22: %22any maskable%22
+            }
+        ]
+    }">
+    
+    <style>
+        body {
+            background-color: #0b0f19;
+            color: #f3f4f6;
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            margin: 0;
+            padding: 0;
+        }
+        .frenzi-btn {
+            background-color: #000000;
+            color: #ffffff;
+            border-radius: 9999px;
+            transition: all 0.2s ease-in-out;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            cursor: pointer;
+        }
+        .frenzi-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(96, 165, 250, 0.25);
+            border-color: rgba(96, 165, 250, 0.5);
+        }
+        .frenzi-btn:active {
+            transform: scale(0.96);
+        }
+        .frenzi-case {
+            background-color: #000000;
+            border: 2px solid rgba(255, 255, 255, 0.25);
+            border-radius: 1.25rem;
+            transition: all 0.25s ease;
+        }
+        .frenzi-case:hover {
+            border-color: #60a5fa;
+            box-shadow: 0 0 20px rgba(96, 165, 250, 0.35);
+            transform: translateY(-2px);
+        }
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #000000;
+            border-radius: 9999px;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #374151;
+            border-radius: 9999px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #60a5fa;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col justify-between selection:bg-blue-500 selection:text-white">
+
+    <header class="w-full max-w-6xl mx-auto px-4 py-6 flex flex-col sm:flex-row items-center justify-between gap-4 border-b border-gray-800/80">
+        <div class="flex items-center gap-3 cursor-pointer group" title="FrenziCalendor">
+            <!-- Custom Vector Logo Asset -->
+            <div class="w-12 h-12 rounded-2xl bg-black border-2 border-blue-500/50 flex items-center justify-center shadow-lg group-hover:border-blue-400 group-hover:shadow-blue-500/20 transition-all">
+                <svg xmlns="http://www.w3.org/2000/svg" class="w-7 h-7 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                </svg>
+            </div>
+            <div>
+                <h1 class="text-2xl font-black tracking-wider bg-gradient-to-r from-blue-400 via-indigo-300 to-purple-400 bg-clip-text text-transparent">FrenziCalendor</h1>
+                <p class="text-xs text-gray-400">Votre calendrier rapide et élégant</p>
+            </div>
+        </div>
+
+        <div class="flex items-center gap-2.5 flex-wrap justify-center">
+            <button onclick="changePeriod(-1)" class="frenzi-btn px-4 py-2 text-sm font-medium flex items-center gap-1.5">
+                <span>◀</span> <span class="hidden sm:inline">Précédent</span>
+            </button>
+            <h2 id="current-period-title" class="text-sm sm:text-base font-bold min-w-[170px] text-center text-blue-200 px-2 py-1 bg-black/40 rounded-xl border border-gray-800">Chargement...</h2>
+            <button onclick="changePeriod(1)" class="frenzi-btn px-4 py-2 text-sm font-medium flex items-center gap-1.5">
+                <span class="hidden sm:inline">Suivant</span> <span>▶</span>
+            </button>
+            <button onclick="openExportModal()" class="frenzi-btn px-4 py-2 text-sm font-medium bg-blue-600/20 border-blue-500/40 text-blue-300 hover:bg-blue-600/30">
+                📤 Partager
+            </button>
+        </div>
+    </header>
+
+    <main class="w-full max-w-6xl mx-auto px-4 py-6 flex-grow flex flex-col">
+        <!-- Desktop Monthly View -->
+        <div id="desktop-calendar-view" class="hidden md:flex flex-col flex-grow">
+            <div class="grid grid-cols-7 gap-3 mb-3 text-center font-bold text-gray-400 text-sm tracking-wide">
+                <div class="text-blue-400">Lun</div>
+                <div>Mar</div>
+                <div>Mer</div>
+                <div>Jeu</div>
+                <div>Ven</div>
+                <div>Sam</div>
+                <div class="text-red-400">Dim</div>
+            </div>
+            <div id="desktop-grid" class="grid grid-cols-7 gap-3.5 auto-rows-fr flex-grow"></div>
+        </div>
+
+        <!-- Mobile Vertical Weekly View -->
+        <div id="mobile-calendar-view" class="block md:hidden flex-grow">
+            <div class="text-xs text-blue-400 mb-3 text-center font-semibold tracking-wider uppercase bg-blue-950/30 py-2 rounded-xl border border-blue-900/30">
+                📅 Vue Semaine Interactive (Mobile)
+            </div>
+            <div id="mobile-vertical-list" class="flex flex-col gap-3"></div>
+        </div>
+    </main>
+
+    <div id="day-modal" class="fixed inset-0 bg-black/85 backdrop-blur-md z-50 hidden flex items-center justify-center p-4 transition-opacity duration-300">
+        <div class="bg-gray-900 border-2 border-gray-700/80 w-full max-w-md rounded-3xl p-6 shadow-2xl relative flex flex-col max-h-[85vh]">
+            <div class="flex justify-between items-center mb-4 pb-3 border-b border-gray-800">
+                <h3 id="modal-date-title" class="text-lg sm:text-xl font-bold text-blue-300">Événements du jour</h3>
+                <button onclick="closeDayModal()" class="frenzi-btn w-9 h-9 flex items-center justify-center text-xl font-bold text-gray-300 hover:text-white">×</button>
+            </div>
+
+            <div id="modal-events-list" class="flex-grow overflow-y-auto space-y-3 mb-4 pr-1"></div>
+
+            <div class="border-t border-gray-800 pt-4 mt-auto">
+                <h4 class="text-xs font-bold uppercase tracking-wider text-gray-400 mb-3">Ajouter un événement / tâche</h4>
+                <form id="quick-event-form" onsubmit="handleQuickEventSubmit(event)" class="space-y-3">
+                    <div>
+                        <input type="text" id="event-title-input" placeholder="Intitulé de l'événement..." required
+                            class="w-full bg-black border-2 border-gray-700/80 rounded-2xl px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-blue-500 text-sm shadow-inner transition-colors">
+                    </div>
+                    <div>
+                        <input type="text" id="event-person-input" placeholder="Personne concernée (optionnel)..."
+                            class="w-full bg-black border-2 border-gray-700/80 rounded-2xl px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-blue-500 text-sm shadow-inner transition-colors">
+                    </div>
+                    <button type="submit" class="frenzi-btn w-full py-3 font-bold text-sm shadow-lg bg-blue-600 border-blue-500 hover:bg-blue-500 text-white transition-all">
+                        + Ajouter à cette date
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div id="export-modal" class="fixed inset-0 bg-black/85 backdrop-blur-md z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-gray-900 border-2 border-gray-700/80 w-full max-w-sm rounded-3xl p-6 shadow-2xl relative text-center">
+            <h3 class="text-xl font-bold mb-2 text-blue-300">Partager / Transférer</h3>
+            <p class="text-xs text-gray-400 mb-6">Synchronisez ou partagez votre agenda FrenziCalendor :</p>
+            <div class="space-y-3">
+                <button onclick="shareAsFile()" class="frenzi-btn w-full py-3 font-semibold text-sm flex items-center justify-center gap-2">
+                    <span>📁</span> Exporter en fichier JSON
+                </button>
+                <button onclick="shareViaWebShare()" class="frenzi-btn w-full py-3 font-semibold text-sm flex items-center justify-center gap-2">
+                    <span>⚡</span> Partage direct (AirDrop / Quick Share)
+                </button>
+                <button onclick="shareViaURL()" class="frenzi-btn w-full py-3 font-semibold text-sm flex items-center justify-center gap-2">
+                    <span>🔗</span> Copier le lien de partage URL
+                </button>
+                <button onclick="closeExportModal()" class="w-full py-2.5 mt-2 text-xs font-semibold text-gray-400 hover:text-white bg-gray-800/60 hover:bg-gray-800 rounded-full transition-all">
+                    Fermer
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div id="custom-toast" class="fixed bottom-6 right-6 bg-blue-900/90 border border-blue-500 text-white px-5 py-3 rounded-2xl shadow-2xl z-50 hidden transform translate-y-10 opacity-0 transition-all duration-300 text-sm font-medium flex items-center gap-3">
+        <span id="toast-icon" class="text-lg">✨</span>
+        <span id="toast-message">Notification</span>
+    </div>
+
+    <footer class="w-full text-center py-4 text-xs text-gray-500 tracking-wider border-t border-gray-800/50">
+        @Frenzifox9 • FrenziCalendor
+    </footer>
+
+    <script>
+        let currentDate = new Date();
+        let events = {};
+        let activeModalDateStr = "";
+
+        // Load data on startup
+        try {
+            const saved = localStorage.getItem('frenzicalendor_events');
+            if (saved) {
+                events = JSON.parse(saved);
+            }
+        } catch (e) {
+            console.error("Erreur de chargement LocalStorage", e);
+        }
+
+        function showToast(message, icon = "✨") {
+            const toast = document.getElementById('custom-toast');
+            document.getElementById('toast-message').innerText = message;
+            document.getElementById('toast-icon').innerText = icon;
+            toast.classList.remove('hidden', 'translate-y-10', 'opacity-0');
+            setTimeout(() => {
+                toast.classList.add('translate-y-10', 'opacity-0');
+                setTimeout(() => toast.classList.add('hidden'), 300);
+            }, 3000);
+        }
+
+        function saveEvents() {
+            try {
+                localStorage.setItem('frenzicalendor_events', JSON.stringify(events));
+            } catch (e) {
+                console.error("Erreur de sauvegarde LocalStorage", e);
+            }
+        }
+
+        function changePeriod(direction) {
+            const isMobile = window.innerWidth < 768;
+            if (isMobile) {
+                currentDate.setDate(currentDate.getDate() + (direction * 7));
+            } else {
+                currentDate.setMonth(currentDate.getMonth() + direction);
+            }
+            renderCalendar();
+        }
+
+        function renderCalendar() {
+            const isMobile = window.innerWidth < 768;
+            if (isMobile) {
+                renderMobileWeekly();
+            } else {
+                renderDesktopMonthly();
+            }
+        }
+
+        function renderDesktopMonthly() {
+            const grid = document.getElementById('desktop-grid');
+            grid.innerHTML = '';
+
+            const year = currentDate.getFullYear();
+            const month = currentDate.getMonth();
+
+            const monthNames = ["Janvier", "Février", "Mars", "Avril", "Mai", "Juin", "Juillet", "Août", "Septembre", "Octobre", "Novembre", "Décembre"];
+            document.getElementById('current-period-title').innerText = `${monthNames[month]} ${year}`;
+
+            const firstDayIndex = (new Date(year, month, 1).getDay() + 6) % 7; // Monday start
+            const totalDays = new Date(year, month + 1, 0).getDate();
+
+            // Empty cells for alignment
+            for (let i = 0; i < firstDayIndex; i++) {
+                const emptyCell = document.createElement('div');
+                emptyCell.className = "opacity-10 pointer-events-none border border-transparent";
+                grid.appendChild(emptyCell);
+            }
+
+            for (let day = 1; day <= totalDays; day++) {
+                const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+                const cell = document.createElement('div');
+                cell.className = "frenzi-case p-3 flex flex-col justify-between aspect-square cursor-pointer relative group overflow-hidden";
+                cell.onclick = () => openDayModal(dateStr);
+
+                const dayHeader = document.createElement('div');
+                dayHeader.className = "text-xs font-bold text-gray-400 group-hover:text-blue-300 transition-colors flex justify-between items-center";
+                dayHeader.innerHTML = `<span>${day}</span>`;
+                
+                const dayEvents = events[dateStr] || [];
+                if (dayEvents.length > 0) {
+                    const badge = document.createElement('span');
+                    badge.className = "w-2 h-2 rounded-full bg-blue-400 shadow-[0_0_8px_#60a5fa]";
+                    dayHeader.appendChild(badge);
+                }
+                cell.appendChild(dayHeader);
+
+                const contentContainer = document.createElement('div');
+                contentContainer.className = "flex-grow flex flex-col justify-center items-center text-center overflow-hidden my-1";
+
+                if (dayEvents.length > 0) {
+                    const firstEvt = dayEvents[0];
+                    const titleEl = document.createElement('div');
+                    titleEl.className = "text-xs font-semibold text-white line-clamp-2 px-1 leading-tight";
+                    titleEl.innerText = firstEvt.title;
+                    contentContainer.appendChild(titleEl);
+
+                    if (dayEvents.length > 1) {
+                        const moreEl = document.createElement('div');
+                        moreEl.className = "text-[10px] text-blue-400 mt-1 font-bold bg-blue-950/60 px-2 py-0.5 rounded-full";
+                        moreEl.innerText = `+${dayEvents.length - 1} autre(s)`;
+                        contentContainer.appendChild(moreEl);
+                    }
+                } else {
+                    const emptyText = document.createElement('div');
+                    emptyText.className = "text-[10px] text-gray-600 italic group-hover:text-gray-400 transition-colors";
+                    emptyText.innerText = "Libre";
+                    contentContainer.appendChild(emptyText);
+                }
+                cell.appendChild(contentContainer);
+
+                if (dayEvents.length > 0 && dayEvents[0].person) {
+                    const personEl = document.createElement('div');
+                    personEl.className = "text-[10px] font-bold text-blue-300 self-end truncate max-w-full bg-black/60 px-2 py-0.5 rounded-lg border border-gray-800";
+                    personEl.innerText = dayEvents[0].person;
+                    cell.appendChild(personEl);
+                } else {
+                    const spacer = document.createElement('div');
+                    spacer.className = "h-[10px]";
+                    cell.appendChild(spacer);
+                }
+
+                grid.appendChild(cell);
+            }
+        }
+
+        function renderMobileWeekly() {
+            const listContainer = document.getElementById('mobile-vertical-list');
+            listContainer.innerHTML = '';
+
+            const curr = new Date(currentDate);
+            const day = curr.getDay();
+            const diff = curr.getDate() - day + (day === 0 ? -6 : 1); 
+            const monday = new Date(curr.setDate(diff));
+
+            const dayNames = ["Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi", "Dimanche"];
+            let weekStartFormatted = "";
+            let weekEndFormatted = "";
+
+            for (let i = 0; i < 7; i++) {
+                const d = new Date(monday);
+                d.setDate(monday.getDate() + i);
+                const year = d.getFullYear();
+                const month = String(d.getMonth() + 1).padStart(2, '0');
+                const dayNum = String(d.getDate()).padStart(2, '0');
+                const dateStr = `${year}-${month}-${dayNum}`;
+
+                if (i === 0) weekStartFormatted = `${dayNum}/${month}`;
+                if (i === 6) weekEndFormatted = `${dayNum}/${month}`;
+
+                const row = document.createElement('div');
+                row.className = "frenzi-case p-4 flex items-center justify-between gap-3 cursor-pointer";
+                row.onclick = () => openDayModal(dateStr);
+
+                const leftPart = document.createElement('div');
+                leftPart.className = "flex flex-col min-w-[85px]";
+                
+                const dayTitle = document.createElement('span');
+                dayTitle.className = "text-sm font-bold text-blue-300";
+                dayTitle.innerText = dayNames[i];
+                leftPart.appendChild(dayTitle);
+
+                const dateSub = document.createElement('span');
+                dateSub.className = "text-xs text-gray-400";
+                dateSub.innerText = `${dayNum}/${month}`;
+                leftPart.appendChild(dateSub);
+
+                row.appendChild(leftPart);
+
+                const centerPart = document.createElement('div');
+                centerPart.className = "flex-grow flex flex-col justify-center items-center text-center px-2";
+
+                const dayEvents = events[dateStr] || [];
+                if (dayEvents.length > 0) {
+                    const firstEvt = dayEvents[0];
+                    const titleEl = document.createElement('div');
+                    titleEl.className = "text-sm font-semibold text-white";
+                    titleEl.innerText = firstEvt.title;
+                    centerPart.appendChild(titleEl);
+
+                    if (dayEvents.length > 1) {
+                        const moreEl = document.createElement('div');
+                        moreEl.className = "text-xs text-blue-400 font-bold mt-0.5";
+                        moreEl.innerText = `+${dayEvents.length - 1} autre(s) événement(s)`;
+                        centerPart.appendChild(moreEl);
+                    }
+                } else {
+                    const emptyEl = document.createElement('div');
+                    emptyEl.className = "text-xs text-gray-500 italic";
+                    emptyEl.innerText = "Aucun événement";
+                    centerPart.appendChild(emptyEl);
+                }
+
+                row.appendChild(centerPart);
+
+                const rightPart = document.createElement('div');
+                rightPart.className = "min-w-[70px] text-right";
+                if (dayEvents.length > 0 && dayEvents[0].person) {
+                    const personEl = document.createElement('span');
+                    personEl.className = "text-xs font-bold text-blue-300 truncate inline-block max-w-[80px] bg-blue-950/50 px-2 py-1 rounded-lg border border-blue-900/40";
+                    personEl.innerText = dayEvents[0].person;
+                    rightPart.appendChild(personEl);
+                }
+                row.appendChild(rightPart);
+
+                listContainer.appendChild(row);
+            }
+
+            document.getElementById('current-period-title').innerText = `Semaine du ${weekStartFormatted} au ${weekEndFormatted}`;
+        }
+
+        function openDayModal(dateStr) {
+            activeModalDateStr = dateStr;
+            const [y, m, d] = dateStr.split('-');
+            document.getElementById('modal-date-title').innerText = `Événements du ${d}/${m}/${y}`;
+            renderModalEventsList();
+            document.getElementById('day-modal').classList.remove('hidden');
+        }
+
+        function closeDayModal() {
+            document.getElementById('day-modal').classList.add('hidden');
+            document.getElementById('quick-event-form').reset();
+            renderCalendar();
+        }
+
+        function renderModalEventsList() {
+            const container = document.getElementById('modal-events-list');
+            container.innerHTML = '';
+
+            const dayEvents = events[activeModalDateStr] || [];
+            if (dayEvents.length === 0) {
+                container.innerHTML = `<p class="text-xs text-gray-500 text-center py-6 italic bg-black/30 rounded-2xl border border-gray-800">Aucun événement enregistré pour cette journée.</p>`;
+                return;
+            }
+
+            dayEvents.forEach((evt, index) => {
+                const card = document.createElement('div');
+                card.className = "bg-black border border-gray-700/80 rounded-2xl p-3.5 flex items-center justify-between gap-3 shadow-md";
+                
+                const infoDiv = document.createElement('div');
+                infoDiv.className = "flex flex-col flex-grow overflow-hidden";
+                
+                const titleSpan = document.createElement('span');
+                titleSpan.className = "text-sm font-semibold text-white break-words";
+                titleSpan.innerText = evt.title;
+                infoDiv.appendChild(titleSpan);
+
+                if (evt.person) {
+                    const personSpan = document.createElement('span');
+                    personSpan.className = "text-xs font-bold text-blue-300 mt-1 flex items-center gap-1";
+                    personSpan.innerHTML = `<span>👤</span> ${evt.person}`;
+                    infoDiv.appendChild(personSpan);
+                }
+
+                card.appendChild(infoDiv);
+
+                const delBtn = document.createElement('button');
+                delBtn.className = "frenzi-btn px-3 py-1.5 text-xs text-red-400 font-bold hover:bg-red-950/50 hover:border-red-500/50";
+                delBtn.innerText = "✕ Supprimer";
+                delBtn.onclick = () => deleteEvent(activeModalDateStr, index);
+                card.appendChild(delBtn);
+
+                container.appendChild(card);
+            });
+        }
+
+        function handleQuickEventSubmit(e) {
+            e.preventDefault();
+            const title = document.getElementById('event-title-input').value.trim();
+            const person = document.getElementById('event-person-input').value.trim();
+
+            if (!title) return;
+
+            if (!events[activeModalDateStr]) {
+                events[activeModalDateStr] = [];
+            }
+
+            events[activeModalDateStr].push({ title, person });
+            saveEvents();
+
+            document.getElementById('event-title-input').value = '';
+            document.getElementById('event-person-input').value = '';
+            renderModalEventsList();
+            showToast("Événement ajouté avec succès !", "🎉");
+        }
+
+        function deleteEvent(dateStr, index) {
+            if (events[dateStr]) {
+                events[dateStr].splice(index, 1);
+                if (events[dateStr].length === 0) {
+                    delete events[dateStr];
+                }
+                saveEvents();
+                renderModalEventsList();
+                showToast("Événement supprimé.", "🗑️");
+            }
+        }
+
+        function openExportModal() {
+            document.getElementById('export-modal').classList.remove('hidden');
+        }
+
+        function closeExportModal() {
+            document.getElementById('export-modal').classList.add('hidden');
+        }
+
+        function shareAsFile() {
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(events));
+            const downloadAnchor = document.createElement('a');
+            downloadAnchor.setAttribute("href", dataStr);
+            downloadAnchor.setAttribute("download", "frenzicalendor_data.json");
+            document.body.appendChild(downloadAnchor);
+            downloadAnchor.click();
+            downloadAnchor.remove();
+            closeExportModal();
+            showToast("Fichier exporté avec succès !", "📁");
+        }
+
+        async function shareViaWebShare() {
+            if (navigator.share) {
+                try {
+                    await navigator.share({
+                        title: 'FrenziCalendor',
+                        text: 'Voici mes données de calendrier FrenziCalendor :',
+                        url: window.location.href
+                    });
+                    closeExportModal();
+                } catch (err) {
+                    console.log('Partage annulé', err);
+                }
+            } else {
+                showToast("Le partage direct n'est pas supporté ici.", "⚠️");
+            }
+        }
+
+        function shareViaURL() {
+            const dataEncoded = encodeURIComponent(JSON.stringify(events));
+            const fullUrl = `${window.location.origin}${window.location.pathname}#data=${dataEncoded}`;
+            
+            const tempInput = document.createElement('input');
+            tempInput.value = fullUrl;
+            document.body.appendChild(tempInput);
+            tempInput.select();
+            document.execCommand('copy');
+            document.body.removeChild(tempInput);
+
+            showToast("URL de partage copiée dans le presse-papier !", "🔗");
+            closeExportModal();
+        }
+
+        window.addEventListener('DOMContentLoaded', () => {
+            if (window.location.hash.includes('#data=')) {
+                try {
+                    const hashData = window.location.hash.split('#data=')[1];
+                    events = JSON.parse(decodeURIComponent(hashData));
+                    saveEvents();
+                    showToast("Données importées depuis l'URL !", "🚀");
+                } catch (e) {
+                    console.error("Erreur de décodage URL", e);
+                }
+            }
+            renderCalendar();
+        });
+
+        window.addEventListener('resize', () => {
+            renderCalendar();
+        });
+
+        // PWA Service Worker script inline registration
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                const swCode = `
+                    self.addEventListener('install', (e) => { e.waitUntil(self.skipWaiting()); });
+                    self.addEventListener('activate', (e) => { e.waitUntil(self.clients.claim()); });
+                    self.addEventListener('fetch', (e) => { e.respondWith(fetch(e.request).catch(() => caches.match(e.request))); });
+                `;
+                const blob = new Blob([swCode], { type: 'text/javascript' });
+                const swUrl = URL.createObjectURL(blob);
+                navigator.serviceWorker.register(swUrl).catch(() => {});
+            });
+        }
+    </script>
+</body>
+</html>
